@@ -17,6 +17,14 @@ function Card({ children, className = "" }) {
 }
 
 function App() {
+  const [runtimeMeta, setRuntimeMeta] = useState({
+    scriptsAllowedRoot: "",
+    hostHome: "",
+    scriptRoot: "",
+    backupRoot: "",
+    logsRoot: "",
+    dockerSocketEnabled: false
+  });
   const bashGuide = {
     safety: [
       "`#!/usr/bin/env bash`",
@@ -49,14 +57,14 @@ function App() {
       key: "git-pull",
       title: "Git Pull Multiple Repos",
       suggestedName: "Git Pull Projects",
-      suggestedPath: "/home/ubuntu/bin/git-pull-projects.sh",
+      suggestedPath: `${runtimeMeta.scriptsAllowedRoot || runtimeMeta.hostHome || "/opt/script-manager/scripts"}/git-pull-projects.sh`,
       description: "Pull origin/main for multiple repositories.",
       content: `#!/usr/bin/env bash
 set -euo pipefail
 
 REPOS=(
-  "/home/ubuntu/nijaat.com"
-  "/home/ubuntu/multanit.com"
+  "${runtimeMeta.hostHome || "/srv"}/project-one"
+  "${runtimeMeta.hostHome || "/srv"}/project-two"
 )
 
 for repo in "\${REPOS[@]}"; do
@@ -68,14 +76,14 @@ done`
       key: "npm-install",
       title: "NPM Install Multiple Projects",
       suggestedName: "NPM Install Projects",
-      suggestedPath: "/home/ubuntu/npm-install-projects.sh",
+      suggestedPath: `${runtimeMeta.scriptsAllowedRoot || runtimeMeta.hostHome || "/opt/script-manager/scripts"}/npm-install-projects.sh`,
       description: "Run npm install in multiple projects.",
       content: `#!/usr/bin/env bash
 set -euo pipefail
 
 PROJECTS=(
-  "/home/ubuntu/nijaat.com"
-  "/home/ubuntu/worldtradedoo.com"
+  "${runtimeMeta.hostHome || "/srv"}/app-one"
+  "${runtimeMeta.hostHome || "/srv"}/app-two"
 )
 
 for p in "\${PROJECTS[@]}"; do
@@ -87,14 +95,14 @@ done`
       key: "docker-compose",
       title: "Docker Compose Deploy",
       suggestedName: "Docker Compose Deploy",
-      suggestedPath: "/home/ubuntu/docker-compose-deploy.sh",
+      suggestedPath: `${runtimeMeta.scriptsAllowedRoot || runtimeMeta.hostHome || "/opt/script-manager/scripts"}/docker-compose-deploy.sh`,
       description: "Build and start compose stacks from directories.",
       content: `#!/usr/bin/env bash
 set -euo pipefail
 
 DIRS=(
-  "/home/ubuntu/nijaat.com/deploy/combined"
-  "/home/ubuntu/worldtradedoo.com/deploy/combined"
+  "${runtimeMeta.hostHome || "/srv"}/app-one/deploy/combined"
+  "${runtimeMeta.hostHome || "/srv"}/app-two/deploy/combined"
 )
 
 for d in "\${DIRS[@]}"; do
@@ -252,6 +260,11 @@ done`
   useEffect(() => { if (auth) refresh(); }, [auth]);
 
   useEffect(() => {
+    if (!auth) return;
+    api("/api/system/runtime-meta").then((data) => setRuntimeMeta(data)).catch(() => {});
+  }, [auth]);
+
+  useEffect(() => {
     if (!selectedScriptId) return;
     Promise.all([
       api(`/api/scripts/${selectedScriptId}/content`),
@@ -350,11 +363,12 @@ done`
               <h3 className="mb-3 text-lg font-semibold">Add Script</h3>
               <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
             <p className="font-semibold text-sky-900">Quick Guide</p>
-            <p>1. Create script file on server (example: <code>/home/ubuntu/bin/my-script.sh</code>).</p>
+            <p>1. Create script file on server (example: <code>{`${runtimeMeta.scriptsAllowedRoot || "/opt/script-manager/scripts"}/my-script.sh`}</code>).</p>
             <p>2. Make it executable: <code>chmod +x /path/to/script.sh</code>.</p>
             <p>3. Add script here, validate path, then save.</p>
             <p>4. Optional: add schedule from Schedules section.</p>
-              </div>
+            <p>Allowed script root: <code>{runtimeMeta.scriptsAllowedRoot || "loading..."}</code>.</p>
+          </div>
               <form action={addScriptAction}>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
               <input id="script-name" name="name" autoComplete="off" className="rounded-md border border-slate-300 px-3 py-2" placeholder="Name" value={newScript.name} onChange={(e) => setNewScript({ ...newScript, name: e.target.value })} />
