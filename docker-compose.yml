@@ -1,0 +1,15 @@
+services:
+  script-manager:
+    build: .
+    container_name: script-manager
+    user: "1001:1001"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:19000:19000"
+    env_file:
+      - .env
+    environment:
+      - HOME=/home/ubuntu
+    volumes:
+      - /home/ubuntu:/home/ubuntu
+      - /var/run/docker.sock:/var/run/docker.sock
